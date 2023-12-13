@@ -1,9 +1,8 @@
 #include <iostream>
-#include <cmath>
-#include <cassert>
 #include <windows.h>
 #include <cstring>
 #include <ctime>
+#include <iomanip>
 // PLOCHKI = CARTI
 // Konstanti
 const unsigned LAYER_SIZE = 20;
@@ -11,10 +10,11 @@ const unsigned DECK_SIZE = 8;
 const unsigned INPUT_LENGTH = 64;
 const unsigned MAX_LAYERS = 10;
 unsigned deck_top = 0;
+unsigned points = 0;
 
 void print_layer(unsigned layer[][LAYER_SIZE], char symbols[]); // Printira sloi
 void print_deck(unsigned deck[], char symbols[]); // Printira testeto
-void print_info();
+void print_info(); // Pechata informaciq za kak se igrae igrata
 void setup_layer(unsigned layer[][LAYER_SIZE], size_t card_amount, unsigned id); // Suzdava sloi
 bool update_deck(unsigned deck[], size_t card_amount); // Obnovqva testeto
 void cleanup_deck(unsigned deck[], unsigned id); // Chisti povtorkite
@@ -23,7 +23,7 @@ bool check_coords(char input[], unsigned& x, unsigned& y); // Proverqva vhoda za
 void take_card(unsigned layers[][LAYER_SIZE][LAYER_SIZE], unsigned deck[], unsigned x, unsigned y, unsigned LAYER_AMOUNT); // Vzema karta, podadena ot igracha i q slaga v testeto
 void swap(unsigned& a, unsigned& b); // swap
 void to_lower(char line[]); // Pravi vsichki glavni v malki bukvi
-void clear(); // Chisti konzolata
+void clear_console(); // Chisti konzolata
 bool check_win(unsigned layers[][LAYER_SIZE][LAYER_SIZE], unsigned LAYER_AMOUNT); // Proverqva za pobeda
 void setup_game(unsigned layers[][LAYER_SIZE][LAYER_SIZE], unsigned CARDS, unsigned LAYER_AMOUNT, unsigned card_amounts[]); // Suzdava neshtata za igrata
 void flush_deck(unsigned deck[]); // Chisti testeto
@@ -31,7 +31,7 @@ void overlay_layers(unsigned layers[][LAYER_SIZE][LAYER_SIZE], unsigned current_
 
 int main() {
     std::cout<<std::boolalpha;
-    clear();
+    clear_console();
     print_info();
 
     // Broi sloeve
@@ -43,7 +43,7 @@ int main() {
         std::cin>>LAYER_AMOUNT;
     } while(LAYER_AMOUNT <= 0 && LAYER_AMOUNT > MAX_LAYERS);
 
-    clear();
+    clear_console();
 
     // Vidove karti
     std::cout<<"How many different cards do you want to have? [8, 20]"<<std::endl;
@@ -53,7 +53,7 @@ int main() {
         std::cin>>CARDS;
     } while(CARDS < 8 || CARDS > 20);
 
-    clear();
+    clear_console();
 
     // Promenlivi
     char *card_symbols = new char[CARDS];
@@ -70,7 +70,7 @@ int main() {
         card_amounts[i] = (rand() % 7 + 1) * 3; // tova e za da si garantitame che nqma da stanat prekaleno mnogo kartite
     }
 
-    clear();
+    clear_console();
     setup_game(layers, CARDS, LAYER_AMOUNT, card_amounts);
     overlay_layers(layers, current_layer, LAYER_AMOUNT);
 
@@ -101,7 +101,9 @@ int main() {
             overlay_layers(layers, current_layer, LAYER_AMOUNT);
         } else {
             if(!strcmp(input, "kill")) {
-                std::cout<<"Game has been halted";
+                clear_console();
+                std::cout<<"Game has been halted"<<std::endl;
+                std::cout<<"You managed to make a total of "<<points<<" pairs";
                 break;
             } else if(!strcmp(input, "down")) {
                 if(layer_shown < LAYER_AMOUNT - 1) {
@@ -118,23 +120,27 @@ int main() {
             }
         }
 
-        clear();
+        clear_console();
 
         // Pobeda
         if(check_win(layers, LAYER_AMOUNT)) {
-            std::cout<<"YOU WIN!!!!";
+            std::cout<<"YOU WIN!!!!"<<std::endl;
+            std::cout<<"You managed to make a total of "<<points<<" pairs";
             break;
         }
 
         // Zaguba
         if(update_deck(deck, CARDS)) {
-            std::cout<<"YOU LOST"<<std::endl<<"Do you want to restart? [y/n]"<<std::endl<<"> ";
+            std::cout<<"YOU LOST"<<std::endl;
+            std::cout<<"You managed to make a total of "<<points<<" pairs"<<std::endl;
+            std::cout<<"Do you want to restart? [y/n]"<<std::endl<<"> ";
             char c;
             std::cin>>c;
             if(c == 'y') {
                 setup_game(layers, CARDS, LAYER_AMOUNT, card_amounts);
                 overlay_layers(layers, current_layer, LAYER_AMOUNT);
                 flush_deck(deck);
+                points = 0;
             } else {
                 std::cout<<"Game has ended!"<<std::endl<<"BYE!"<<std::endl;
                 break;
@@ -165,18 +171,29 @@ void print_info() {
 
 void print_layer(unsigned layer[][LAYER_SIZE], char symbols[]) {
     HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    std::cout<<std::endl<<"  ";
+    for(size_t j = 0; j < LAYER_SIZE; j++) {
+        std::cout<<"--- ";
+    }
     std::cout<<std::endl;
+
     for(size_t i = 0; i < LAYER_SIZE; i++) {
-        std::cout<<'|';
+        std::cout<<" | ";
         for(size_t j = 0; j < LAYER_SIZE; j++) {
             char symbol = ' ';
-            if(layer[i][j] > 0) {
+            if(layer[i][j] > 0 && layer[i][j] <= 20) {
                 symbol = symbols[layer[i][j] - 1];
                 SetConsoleTextAttribute(h, layer[i][j] % 15);
             }
             std::cout<<symbol;
             SetConsoleTextAttribute(h, 15);
-            std::cout<<'|';
+            std::cout<<" | ";
+        }
+        std::cout<<std::endl<<"  ";
+
+        for(size_t j = 0; j < LAYER_SIZE; j++) {
+            std::cout<<"--- ";
         }
         std::cout<<std::endl;
     }
@@ -184,7 +201,7 @@ void print_layer(unsigned layer[][LAYER_SIZE], char symbols[]) {
 
 void print_deck(unsigned deck[], char symbols[]) {
     HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-    std::cout<<std::endl;
+    std::cout<<std::endl<<std::setw(3);
     for(size_t i = 0; i < DECK_SIZE; i++) {
         if(deck[i] > 0) {
             SetConsoleTextAttribute(h, deck[i] % 15);
@@ -236,7 +253,7 @@ void cleanup_deck(unsigned deck[], unsigned id) {
     }
 
     deck_top -= 3;
-
+    points++;
     order_deck(deck);
 }
 
@@ -265,7 +282,7 @@ void to_lower(char line[]) {
     }
 }
 
-void clear() {
+void clear_console() {
     system("cls");
 }
 
@@ -283,6 +300,7 @@ bool check_coords(char input[], unsigned& x, unsigned& y) {
                 x = atoi(ptr);
                 x = x >= LAYER_SIZE ? LAYER_SIZE - 1 : x;  
                 has_x = true;
+                ptr++;
             }
         }
         ptr++;
@@ -323,6 +341,7 @@ void setup_game(unsigned layers[][LAYER_SIZE][LAYER_SIZE], unsigned CARDS, unsig
                 layers[l][i][j] = 0;
             }
         }
+
         for(size_t j = 0; j < CARDS; j++) {
             setup_layer(layers[l], card_amounts[j], j + 1);
         }
