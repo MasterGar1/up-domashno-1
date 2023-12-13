@@ -3,6 +3,7 @@
 #include <cassert>
 #include <windows.h>
 #include <cstring>
+#include <ctime>
 // PLOCHKI = CARTI
 // Konstanti
 const unsigned LAYER_SIZE = 20;
@@ -61,7 +62,7 @@ int main() {
     unsigned current_layer[LAYER_SIZE][LAYER_SIZE] = {};
     unsigned deck[DECK_SIZE] = {};
 
-    srand(time(0));
+    srand(time(NULL));
     // Vzemame simvoli, broq im i suzdavame poleto
     for(size_t i = 0; i < CARDS; i++) {
         std::cout<<"Enter symbol for card "<< i + 1 <<std::endl<<"> ";
@@ -274,11 +275,13 @@ bool check_coords(char input[], unsigned& x, unsigned& y) {
     while(*ptr) {
         if(*ptr >= '0' && *ptr <= '9') {
             if(has_x){
-                x = atoi(ptr);
+                y = atoi(ptr);
+                y = y >= LAYER_SIZE ? LAYER_SIZE - 1 : y; 
                 return true;
             }
             else {
-                y = atoi(ptr);
+                x = atoi(ptr);
+                x = x >= LAYER_SIZE ? LAYER_SIZE - 1 : x;  
                 has_x = true;
             }
         }
@@ -290,10 +293,9 @@ bool check_coords(char input[], unsigned& x, unsigned& y) {
 
 void take_card(unsigned layers[][LAYER_SIZE][LAYER_SIZE], unsigned deck[], unsigned x, unsigned y, unsigned LAYER_AMOUNT) {
     for(size_t l = 0; l < LAYER_AMOUNT; l++) {
-        std::cout<<layers[l][x][y];
-        if(layers[l][x][y] > 0) {
-            deck[deck_top] = layers[l][x][y];
-            layers[l][x][y] = 0;
+        if(layers[l][y][x] > 0) {
+            deck[deck_top] = layers[l][y][x];
+            layers[l][y][x] = 0;
             deck_top++;
             break;
         }
